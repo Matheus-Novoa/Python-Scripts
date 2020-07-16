@@ -1,2 +1,2 @@
 # Python-Scripts
- Scripts developed in my scientific initiation scholarship in Chemical Engineering
+ Scripts developed during my scientific initiation scholarship in Chemical Engineering
