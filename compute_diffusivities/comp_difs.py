@@ -4,7 +4,6 @@ import os
 from scipy.stats import linregress
 from sympy import diff
 from sympy.abc import P
-# import parametros_isotermas as params
 import json
 
 
@@ -26,7 +25,7 @@ def compute_diff(gases, path):
 
     for gas in gases:
         dcm = {}
-        for root, dirs, files in os.walk(gas):
+        for root, _, files in os.walk(gas):
             data = []
             for name in files:
                 if name.endswith('txt'):
