@@ -6,13 +6,13 @@ from sympy import diff
 from sympy.abc import P
 import json
 
-def ComputeCorrectedDiffusivity(gas_path: str) -> dict[float, float]:
+def ComputeCorrectedDiffusivity(gas_path: str) -> dict:
     """Obtém os dados dos arquivos de saída do lammps e calcula as difusividades corrigidas
     Args:
         gas_path (str): caminho da pasta do determinado gás
 
     Returns:
-        dict[float, float]: Dicionário onde as chaves são as pressões e os valores são as difusividades
+        dict[float, float]: Dicionário onde as chaves são as quantidades de moléculas e os valores são as difusividades
     """
     dcm = {}
     # Varredura recursiva em gas_path
@@ -26,7 +26,7 @@ def ComputeCorrectedDiffusivity(gas_path: str) -> dict[float, float]:
                 # 1ª col) tempo;
                 # 2ª col) Valor absoluto dos deslocamentos
                 # 3ª col) Valor dos deslocamentos quadráticos
-                data.append(np.loadtxt(f'{root}{os.sep}{name}', usecols=[0, 1])) 
+                data.append(np.loadtxt(f'{root}{os.sep}{name}', usecols=[0, 1]))
         
         # Se o diretório não possuir *.txt ele não entra no if
         if len(data) != 0:
@@ -39,6 +39,24 @@ def ComputeCorrectedDiffusivity(gas_path: str) -> dict[float, float]:
             dcm[float(key)] = np.mean(dc) * 1e-4 # A²/ps --> cm²/s
 
     return dict(sorted(dcm.items()))
+
+
+def ComputeTermodynamicFactor(gas_type: str, temp: float) -> float:
+    parameters = {
+        'CH4': {
+            'a1': 61.38, 'a2': -1.59, 'a3': 6.16e-8, 'a4': 854.66},
+        'H2': {
+            'a1': 1.9e-11, 'a2': 3.42, 'a3': 8.2e-12, 'a4': 2662.61}
+    }
+
+    gas_selected = parameters[gas_type]
+
+    qm = gas_selected['a1'] * temp**gas_selected['a2']
+    B = gas_selected['a3'] * np.exp(gas_selected['a4'] / temp)
+
+    concentration = qm * B * P / (1 + B*P)
+
+    return concentration.subs(P,500000)
 
         
 def compute_diff(gases: list, path: str) -> dict:
@@ -97,5 +115,5 @@ def build_df(path):
 
     return Dc_table
 
-#df = build_df(r'C:\Users\User\Dropbox_Matheus\Dropbox\Difusividade\c48a')
-#print(df)
+tf = ComputeTermodynamicFactor('CH4', 300)
+print(tf)
