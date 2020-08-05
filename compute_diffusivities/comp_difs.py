@@ -4,9 +4,9 @@ import os
 from scipy.stats import linregress
 from sympy import diff
 from sympy.abc import P
-import json
 
-def ComputeCorrectedDiffusivity(gas_path: str) -> dict:
+
+def compute_corrected_diffusivity(gas_path):
     """Obtém os dados dos arquivos de saída do lammps e calcula as difusividades corrigidas
     Args:
         gas_path (str): caminho da pasta do determinado gás
@@ -35,13 +35,13 @@ def ComputeCorrectedDiffusivity(gas_path: str) -> dict:
             #index = np.where(data_array[0, :, 0] == 1000)[0][0]
             fit_params = map(linregress, data_array[:, 4000:]) # Faz o ajuste linear das matrizes desprezando as primeiras linhas
             dc = [p.slope / 6 for p in fit_params] # Lista com as triplicatas das difusividades
-            # Dicionário com as médias das difusividadespara cada pressão
+            # Dicionário com as médias das difusividades para cada pressão
             dcm[float(key)] = np.mean(dc) * 1e-4 # A²/ps --> cm²/s
 
     return dict(sorted(dcm.items()))
 
 
-def ComputeTermodynamicFactor(gas_type: str, temp: float) -> float:
+def compute_termodynamic_factor(gas_type, press_list, temp):
     parameters = {
         'CH4': {
             'a1': 61.38, 'a2': -1.59, 'a3': 6.16e-8, 'a4': 854.66},
@@ -55,11 +55,20 @@ def ComputeTermodynamicFactor(gas_type: str, temp: float) -> float:
     B = gas_selected['a3'] * np.exp(gas_selected['a4'] / temp)
 
     concentration = qm * B * P / (1 + B*P)
+    concentration_diff = diff(concentration, P)
 
-    return concentration.subs(P,500000)
+    termodynamic_factor = []
+
+    for press in press_list:
+        conc = concentration.subs(P, press)
+        deriv = concentration_diff.subs(P, press)
+        
+        termodynamic_factor.append(float(conc / press / deriv))
+
+    return termodynamic_factor
 
         
-def compute_diff(gases: list, path: str) -> dict:
+def compute_diffusivities(gases):
     """Compute gases transport diffusion coefficient.
 
     Args:
@@ -69,37 +78,27 @@ def compute_diff(gases: list, path: str) -> dict:
     Returns:
         dict: Dicionário de dataframes, onde cada um é referente a um gas
     """
-    structure = path.split(os.sep)[-1]
-    Iso_data = pd.read_excel('Dados_Isotermas.xlsm', sheet_name=structure, index_col=0)
-    Iso_data.reset_index(inplace=True)
-
-    with open('parametros_isotermas.json') as f:
-        IsoParams = json.load(f)
-
-    StructureParams = IsoParams[structure]
-
     gas_dict = None
 
     for gas in gases:
         
-        dc_dict = ComputeCorrectedDiffusivity(gas)
+        dc_dict = compute_corrected_diffusivity(gas_path=gas)
 
         gas_name = gas.split(os.sep)[-1]
-
-        A = StructureParams[gas_name]['A']
-        B = StructureParams[gas_name]['B']
-
-        Iso = A * B * P / (1 + B * P)
-        Iso_diff = diff(Iso, P)
 
         if gas_dict is None:
             gas_dict = {}
 
-        gas_dict[gas_name] = pd.DataFrame(list(dc_dict.values()), index=dc_dict.keys(), columns=['D0 (cm^2/s)'])
-        gas_dict[gas_name]['Termodyamic Factor'] = [round(float(C / Press / Iso_diff.subs(P, Press)), 2) for Press, C in
-                                                    zip(Iso_data['P [bar]'], Iso_data[gas_name])]
-        gas_dict[gas_name]['Dt (cm^2/s)'] = round(
-            gas_dict[gas_name]['D0 (cm^2/s)'] * gas_dict[gas_name]['Termodyamic Factor'], 5)
+        pressures_list_in_bar = [5, 10, 25]
+        convert_to_Pa = list(map(lambda x: x*1e5, pressures_list_in_bar))
+
+        gas_dict[gas_name] = pd.DataFrame(data=list(dc_dict.values()), index=pressures_list_in_bar, columns=['Dc (cm^2/s)'])
+
+        gas_dict[gas_name]['Termodynamic Factor'] = compute_termodynamic_factor(gas_type=gas_name, press_list=convert_to_Pa, temp=300)
+        
+        gas_dict[gas_name]['Dt (cm^2/s)'] = gas_dict[gas_name]['Dc (cm^2/s)'] * gas_dict[gas_name]['Termodynamic Factor']
+
+        gas_dict[gas_name] = gas_dict[gas_name].round({'Termodynamic Factor': 2, 'Dt (cm^2/s)': 5})
 
     return gas_dict
 
@@ -108,12 +107,13 @@ def build_df(path):
 
     gases = [folder.path for folder in os.scandir(path) if folder.is_dir()]
 
-    gas_dict = compute_diff(gases, path)
+    gas_dict = compute_diffusivities(gases)
 
-    Dc_table = pd.concat(gas_dict, axis=1)
-    Dc_table.index.name = 'P (bar)'
+    Diff_table = pd.concat(gas_dict, axis=1)
+    Diff_table.index.name = 'P (bar)'
 
-    return Dc_table
+    return Diff_table
 
-tf = ComputeTermodynamicFactor('CH4', 300)
-print(tf)
+
+t = build_df(r'C:\Users\user\Documents\MEGA\TCC\Simulações\producao\300K\1.0')
+print(t)
