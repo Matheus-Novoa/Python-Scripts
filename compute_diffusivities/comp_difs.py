@@ -115,5 +115,5 @@ def build_df(path):
     return Diff_table
 
 
-t = build_df(r'C:\Users\user\Documents\MEGA\TCC\Simulações\producao\300K\1.0')
+t = build_df(r'C:\Users\User\Documents\MEGA\TCC\Simulações\producao\300K\1.0')
 print(t)
