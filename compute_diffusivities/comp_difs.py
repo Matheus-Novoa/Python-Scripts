@@ -27,10 +27,15 @@ def compute_corrected_diffusivity(gas_path):
         # Se o diretório não possuir *.txt ele não entra no if
         if len(data) != 0:
             data_array = np.asarray(data)
-            data_array[:, :, 1] **= 2 # Eleva os valores da segunda coluna das matrizes ao quadrado 
+
+            data_array[:, :, 1] **= 2 # Eleva os valores da segunda coluna das matrizes ao quadrado
+
             filtered_array = [matrix[matrix[:,0] >= 1000] for matrix in data_array]
+            
             fit_params = map(linregress, filtered_array) # Faz o ajuste linear das matrizes desprezando as primeiras linhas
+            
             dc = [p.slope / 6 for p in fit_params] # Lista com as triplicatas das difusividades
+            
             # Dicionário com as médias das difusividades para cada pressão
             dcm[float(key)] = np.mean(dc) * 1e-4 # A²/ps --> cm²/s
 
