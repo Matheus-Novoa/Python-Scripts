@@ -22,18 +22,14 @@ def compute_corrected_diffusivity(gas_path):
             if name.endswith('txt'):
                 #print(f'{root}{os.sep}{name}')
                 key = root.split(os.sep)[-2] # obtém a pressão utilizada na simulação
-                # lista com as matrizes:
-                # 1ª col) tempo;
-                # 2ª col) Valor absoluto dos deslocamentos
-                # 3ª col) Valor dos deslocamentos quadráticos
                 data.append(np.loadtxt(f'{root}{os.sep}{name}', usecols=[0, 1]))
         
         # Se o diretório não possuir *.txt ele não entra no if
         if len(data) != 0:
             data_array = np.asarray(data)
             data_array[:, :, 1] **= 2 # Eleva os valores da segunda coluna das matrizes ao quadrado 
-            #index = np.where(data_array[0, :, 0] == 1000)[0][0]
-            fit_params = map(linregress, data_array[:, 4000:]) # Faz o ajuste linear das matrizes desprezando as primeiras linhas
+            filtered_array = [matrix[matrix[:,0] >= 1000] for matrix in data_array]
+            fit_params = map(linregress, filtered_array) # Faz o ajuste linear das matrizes desprezando as primeiras linhas
             dc = [p.slope / 6 for p in fit_params] # Lista com as triplicatas das difusividades
             # Dicionário com as médias das difusividades para cada pressão
             dcm[float(key)] = np.mean(dc) * 1e-4 # A²/ps --> cm²/s
@@ -89,7 +85,7 @@ def compute_diffusivities(gases):
         if gas_dict is None:
             gas_dict = {}
 
-        pressures_list_in_bar = [5, 10, 25]
+        pressures_list_in_bar = [5, 10, 25, 100]
         convert_to_Pa = list(map(lambda x: x*1e5, pressures_list_in_bar))
 
         gas_dict[gas_name] = pd.DataFrame(data=list(dc_dict.values()), index=pressures_list_in_bar, columns=['Dc (cm^2/s)'])
