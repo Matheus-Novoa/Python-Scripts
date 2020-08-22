@@ -6,7 +6,7 @@ from sympy import diff
 from sympy.abc import P
 
 
-def compute_corrected_diffusivity(gas_path):
+def compute_diffusivity(gas_path, mode):
     """Obtém os dados dos arquivos de saída do lammps e calcula as difusividades corrigidas
     Args:
         gas_path (str): caminho da pasta do determinado gás
@@ -22,13 +22,20 @@ def compute_corrected_diffusivity(gas_path):
             if name.endswith('txt'):
                 #print(f'{root}{os.sep}{name}')
                 key = root.split(os.sep)[-2] # obtém a pressão utilizada na simulação
-                data.append(np.loadtxt(f'{root}{os.sep}{name}', usecols=[0, 1]))
+                
+                if mode == 'corrected':
+                    raw_matrix = np.loadtxt(f'{root}{os.sep}{name}', usecols=[0, 1])
+                    raw_matrix[:,1] **= 2
+                else:
+                    raw_matrix = np.loadtxt(f'{root}{os.sep}{name}', usecols=[0, 2])
+                
+                data.append(raw_matrix)
         
         # Se o diretório não possuir *.txt ele não entra no if
         if len(data) != 0:
             data_array = np.asarray(data)
 
-            data_array[:, :, 1] **= 2 # Eleva os valores da segunda coluna das matrizes ao quadrado
+            #data_array[:, :, 1] **= 2 # Eleva os valores da segunda coluna das matrizes ao quadrado
 
             filtered_array = [matrix[matrix[:,0] >= 1000] for matrix in data_array]
             
@@ -68,8 +75,33 @@ def compute_termodynamic_factor(gas_type, press_list, temp):
 
     return termodynamic_factor
 
-        
-def compute_diffusivities(gases):
+
+def compute_self_diffusivity(gases):
+    """Compute gases self diffusion coefficient.
+
+    Args:
+        gases (list): path of gases folders
+
+    Returns:
+        dict: dictionary of dataframes where each one refers to a certain gas
+    """
+    gas_dict = None
+    
+    for gas in gases:
+        dc_dict = compute_diffusivity(gas_path=gas, mode='self')
+        gas_name = gas.split(os.sep)[-1]
+
+        if gas_dict is None:
+            gas_dict = {}
+
+        pressures_list_in_bar = [5, 10, 25, 100]
+
+        gas_dict[gas_name] = pd.DataFrame(data=list(dc_dict.values()), index=pressures_list_in_bar, columns=['Ds (cm^2/s)'])
+
+    return gas_dict
+
+
+def compute_transport_diffusivity(gases):
     """Compute gases transport diffusion coefficient.
 
     Args:
@@ -83,7 +115,7 @@ def compute_diffusivities(gases):
 
     for gas in gases:
         
-        dc_dict = compute_corrected_diffusivity(gas_path=gas)
+        dc_dict = compute_diffusivity(gas_path=gas, mode='corrected')
 
         gas_name = gas.split(os.sep)[-1]
 
@@ -104,11 +136,14 @@ def compute_diffusivities(gases):
     return gas_dict
 
 
-def build_df(path):
+def build_df(path, mode):
 
     gases = [folder.path for folder in os.scandir(path) if folder.is_dir()]
 
-    gas_dict = compute_diffusivities(gases)
+    if mode == 'corrected':
+        gas_dict = compute_transport_diffusivity(gases)
+    else:
+        gas_dict = compute_self_diffusivity(gases)
 
     Diff_table = pd.concat(gas_dict, axis=1)
     Diff_table.index.name = 'P (bar)'
@@ -116,5 +151,5 @@ def build_df(path):
     return Diff_table
 
 
-t = build_df(r'C:\Users\User\Documents\MEGA\TCC\Simulações\producao\300K\1.0')
+t = build_df(r'C:\Users\User\Documents\MEGA\TCC\Simulações\producao\300K\1.0', mode='self')
 print(t)
