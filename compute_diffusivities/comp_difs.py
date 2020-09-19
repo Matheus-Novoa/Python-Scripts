@@ -55,8 +55,8 @@ def compute_termodynamic_factor(gas_type, press_list):
             'Qm': 0.007953861011741553,
             'B': 0.027598847706793758},
         'H2': {
-            'Qm': 1,
-            'B': 1}
+            'Qm': 0.01322445161143216,
+            'B': 0.002778741349613243}
     }
 
     gas_selected = parameters[gas_type]
@@ -98,7 +98,7 @@ def compute_self_diffusivity(gases):
 
         pressures_list_in_bar = [5, 10, 25, 100]
 
-        gas_dict[gas_name] = pd.DataFrame(data=list(dc_dict.values()), index=[55,110,220,370], columns=['Ds (cm^2/s)'])
+        gas_dict[gas_name] = pd.DataFrame(data=list(dc_dict.values()), index=pressures_list_in_bar, columns=['Ds (cm^2/s)'])
 
     return gas_dict
 
