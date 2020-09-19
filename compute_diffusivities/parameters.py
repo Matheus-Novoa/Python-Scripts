@@ -7,7 +7,7 @@ def Langmuir(P, Qm, B):
 
 
 press = [5, 10, 25, 50, 100, 200]
-conc = [8.63e-4, 1.85e-3, 3.14e-3, 4.70e-3, 5.80e-3, 6.74e-3]
+conc = [2.35e-04, 3.92e-04, 8.63e-04, 1.65e-03, 2.82e-03, 4.74e-03]
 
 params, cov = curve_fit(Langmuir, press, conc)
 

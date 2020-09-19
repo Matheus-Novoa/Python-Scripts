@@ -98,7 +98,7 @@ def compute_self_diffusivity(gases):
 
         pressures_list_in_bar = [5, 10, 25, 100]
 
-        gas_dict[gas_name] = pd.DataFrame(data=list(dc_dict.values()), index=pressures_list_in_bar, columns=['Ds (cm^2/s)'])
+        gas_dict[gas_name] = pd.DataFrame(data=list(dc_dict.values()), index=[55,110,220,370], columns=['Ds (cm^2/s)'])
 
     return gas_dict
 
@@ -126,7 +126,7 @@ def compute_transport_diffusivity(gases):
 
         pressures_list_in_bar = [5, 10, 25, 100]
 
-        gas_dict[gas_name] = pd.DataFrame(data=list(dc_dict.values()), index=[55,110,220,370], columns=['Dc (cm^2/s)'])
+        gas_dict[gas_name] = pd.DataFrame(data=list(dc_dict.values()), index=pressures_list_in_bar, columns=['Dc (cm^2/s)'])
 
         gas_dict[gas_name]['Termodynamic Factor'] = compute_termodynamic_factor(gas_type=gas_name, press_list=pressures_list_in_bar)
         
@@ -147,10 +147,10 @@ def build_df(path, mode):
         gas_dict = compute_self_diffusivity(gases)
 
     Diff_table = pd.concat(gas_dict, axis=1)
-    Diff_table.index.name = 'Nº Moléculas'
+    Diff_table.index.name = 'P (bar)'
 
     return Diff_table
 
 
-t = build_df(r'C:\Users\User\Documents\MEGA\TCC\Simulações\producao\300K\1.0', mode='corrected')
-print(t)
+#t = build_df(r'C:\Users\User\Documents\MEGA\TCC\Simulações\producao\300K\1.0', mode='corrected')
+#print(t)
