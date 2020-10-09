@@ -7,7 +7,7 @@ def Langmuir(P, Qm, B):
 
 
 press = [5, 10, 25, 50, 100, 200]
-conc = [2.35e-04, 3.92e-04, 8.63e-04, 1.65e-03, 2.82e-03, 4.74e-03]
+conc = [1.73e-04, 2.51e-4, 4.7e-4, 1.16e-3, 2.01e-3, 3.36e-3]
 
 params, cov = curve_fit(Langmuir, press, conc)
 
@@ -16,5 +16,5 @@ print(f'\nQm: {params[0]}\nB: {params[1]}')
 conc_test = [Langmuir(p, params[0], params[1]) for p in press]
 
 plt.plot(press, conc, marker='o')
-plt.plot(press, conc_test, marker='o')
+plt.plot(press, conc_test, '--')
 plt.show()
